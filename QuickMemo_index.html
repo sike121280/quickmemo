@@ -522,15 +522,16 @@ function saveGasUrl(){
       updateConnectIcon(true);
       refreshSettingsUI();
       showBanner('✓ 接続完了！スプレッドシートと連携しました。','success');
+      setTimeout(function(){alert('✓ 接続完了！\nスプレッドシートと連携しました。')},100);
     })
     .catch(function(){
-      // fetchが失敗してもURLが正しい形なら保存する
       cfg.gasUrl=v;saveCfg();
       document.getElementById('urlInputWrap').classList.remove('open');
       if(connectBtn){connectBtn.textContent='接続する';connectBtn.disabled=false}
       updateConnectIcon(true);
       refreshSettingsUI();
       showBanner('✓ 接続完了！スプレッドシートと連携しました。','success');
+      setTimeout(function(){alert('✓ 接続完了！\nスプレッドシートと連携しました。')},100);
     });
 }
 
@@ -946,11 +947,13 @@ if(Notification&&Notification.permission==='default'&&cfg.notifyEnabled)Notifica
 
 // 初期表示
 setTab('all');
-// DOMが確実に準備された後にリスト表示を強制
+// DOMが確実に準備された後にリスト表示とアイコン初期化
 setTimeout(function(){
   if(items.length>0){
     document.getElementById('listArea').style.display='block';
   }
+  // 接続済みならアイコンを緑に
+  updateConnectIcon(!!cfg.gasUrl);
 },0);
 </script>
 </body>
