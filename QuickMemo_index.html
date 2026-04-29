@@ -124,6 +124,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;fon
 
 /* リスト */
 .list-area{padding:10px 14px 20px}
+.pull-indicator{
+  text-align:center;font-size:12px;color:var(--txt3);
+  padding:8px 0;display:none;align-items:center;justify-content:center;gap:6px;
+}
+.pull-indicator.visible{display:flex}
+.pull-spinner{
+  width:14px;height:14px;border-radius:50%;
+  border:2px solid var(--border2);border-top-color:var(--accent);
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
 .list-area.hidden{display:none}
 .card-wrap{position:relative;overflow:hidden;border-radius:var(--r);margin-bottom:8px}
 .card{
@@ -308,6 +319,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;fon
 
   <!-- リスト -->
   <div class="list-area" id="listArea">
+    <div class="pull-indicator" id="pullIndicator">
+      <div class="pull-spinner" id="pullSpinner"></div>
+      <span id="pullText">スプレッドシートから更新中...</span>
+    </div>
     <div id="list"></div>
   </div>
 </div>
@@ -740,6 +755,53 @@ function compressImages(images,callback){
 }
 
 // リマインダー
+// プルトゥリフレッシュ
+var ptrStartY=0,ptrActive=false,ptrThreshold=60;
+document.addEventListener('touchstart',function(e){
+  if(window.scrollY===0)ptrStartY=e.touches[0].clientY;
+},{passive:true});
+document.addEventListener('touchmove',function(e){
+  if(!ptrStartY)return;
+  var dy=e.touches[0].clientY-ptrStartY;
+  if(dy>ptrThreshold&&!ptrActive){ptrActive=true}
+},{passive:true});
+document.addEventListener('touchend',function(){
+  if(ptrActive){
+    ptrActive=false;ptrStartY=0;
+    pullRefresh();
+  }else{
+    ptrStartY=0;
+  }
+});
+
+function pullRefresh(){
+  if(!cfg.gasUrl){
+    alert('設定からGAS URLを設定してください');return;
+  }
+  var indicator=document.getElementById('pullIndicator');
+  indicator.classList.add('visible');
+  document.getElementById('pullText').textContent='スプレッドシートから更新中...';
+
+  fetch(cfg.gasUrl+'?action=getAll')
+    .then(function(r){return r.json()})
+    .then(function(data){
+      if(data&&data.items&&Array.isArray(data.items)){
+        items=data.items;
+        saveItems();
+        render();
+        document.getElementById('pullText').textContent='✓ '+items.length+'件を取得しました';
+        setTimeout(function(){indicator.classList.remove('visible')},2000);
+      }else{
+        document.getElementById('pullText').textContent='データの取得に失敗しました';
+        setTimeout(function(){indicator.classList.remove('visible')},2000);
+      }
+    })
+    .catch(function(){
+      document.getElementById('pullText').textContent='接続できませんでした';
+      setTimeout(function(){indicator.classList.remove('visible')},2000);
+    });
+}
+
 setInterval(function(){
   if(!cfg.notifyEnabled||Notification.permission!=='granted')return;
   var mins=parseInt(cfg.notifyMin||'15'),now=new Date();
@@ -751,10 +813,14 @@ setInterval(function(){
 },30000);
 if(Notification&&Notification.permission==='default'&&cfg.notifyEnabled)Notification.requestPermission();
 
-// 初期表示：アイテムがあればリスト、なければ詳細入力
-// 起動時：メモ→全てと切り替えてリストを確実に表示
-setTab('memo');
+// 初期表示
 setTab('all');
+// DOMが確実に準備された後にリスト表示を強制
+setTimeout(function(){
+  if(items.length>0){
+    document.getElementById('listArea').style.display='block';
+  }
+},0);
 </script>
 </body>
 </html>
