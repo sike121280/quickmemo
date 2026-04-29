@@ -752,8 +752,9 @@ setInterval(function(){
 if(Notification&&Notification.permission==='default'&&cfg.notifyEnabled)Notification.requestPermission();
 
 // 初期表示：アイテムがあればリスト、なければ詳細入力
-setInputType('memo');
-render();
+// 起動時：メモ→全てと切り替えてリストを確実に表示
+setTab('memo');
+setTab('all');
 </script>
 </body>
 </html>
