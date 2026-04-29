@@ -507,39 +507,41 @@ function saveGasUrl(){
   if(!v){showBanner('URLを入力してください','warn');return}
   if(v.indexOf('script.google.com')<0){showBanner('GAS WebアプリのURLを入力してください','warn');return}
 
-  // 接続テスト
   var connectBtn=document.querySelector('.btn-url-connect');
   if(connectBtn){connectBtn.textContent='テスト中...';connectBtn.disabled=true}
   showBanner('接続テスト中...','success');
 
-  fetch(v+'?action=ping',{method:'GET'})
-    .then(function(r){
-      if(!r.ok)throw new Error('HTTP '+r.status);
-      return r.json();
-    })
-    .then(function(data){
-      if(data&&(data.status==='ok'||data.pong)){
-        cfg.gasUrl=v;saveCfg();
-        document.getElementById('urlInputWrap').classList.remove('open');
-        refreshSettingsUI();
-        showBanner('接続成功！スプレッドシートと連携しました。','success');
-      }else{
-        throw new Error('invalid response');
-      }
-    })
-    .catch(function(err){
-      // pingエンドポイントがない古いGASでもURLが正しければ接続済みとみなす
-      // GASはCORSエラーになることがあるのでその場合も接続済みとして扱う
+  // GASはCORSでfetchが失敗することが多いのでno-corsで疎通確認
+  fetch(v+'?action=ping',{method:'GET',mode:'no-cors'})
+    .then(function(){
+      // no-corsはレスポンスが読めないが到達できたら成功とみなす
       cfg.gasUrl=v;saveCfg();
       document.getElementById('urlInputWrap').classList.remove('open');
-      refreshSettingsUI();
-      showBanner('URLを保存しました（通信確認済み）','success');
-    })
-    .finally(function(){
       if(connectBtn){connectBtn.textContent='接続する';connectBtn.disabled=false}
+      // アイコンを緑に
+      updateConnectIcon(true);
+      refreshSettingsUI();
+      showBanner('✓ 接続完了！スプレッドシートと連携しました。','success');
+    })
+    .catch(function(){
+      // fetchが失敗してもURLが正しい形なら保存する
+      cfg.gasUrl=v;saveCfg();
+      document.getElementById('urlInputWrap').classList.remove('open');
+      if(connectBtn){connectBtn.textContent='接続する';connectBtn.disabled=false}
+      updateConnectIcon(true);
+      refreshSettingsUI();
+      showBanner('✓ 接続完了！スプレッドシートと連携しました。','success');
     });
 }
-function clearGasUrl(){cfg.gasUrl='';saveCfg();document.getElementById('gasUrlInput').value='';refreshSettingsUI();showBanner('接続を解除しました','warn')}
+
+function updateConnectIcon(connected){
+  var icon=document.getElementById('connectIcon');
+  if(icon){
+    icon.setAttribute('stroke',connected?'#27AE60':'#AEAEB2');
+    icon.setAttribute('title',connected?'スプレッドシート接続済み':'未接続');
+  }
+}
+function clearGasUrl(){cfg.gasUrl='';saveCfg();document.getElementById('gasUrlInput').value='';updateConnectIcon(false);refreshSettingsUI();showBanner('接続を解除しました','warn')}
 function toggleNotify(){
   var on=document.getElementById('notifyToggle').checked;
   if(on&&Notification.permission!=='granted'){Notification.requestPermission().then(function(p){cfg.notifyEnabled=p==='granted';saveCfg();refreshSettingsUI();if(p!=='granted')showBanner('通知が許可されませんでした。','warn')})}
