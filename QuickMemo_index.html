@@ -51,9 +51,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;fon
   color:#fff;padding:0;flex-shrink:0;
 }
 .search-clear:active{background:var(--txt2)}
-.tabs{display:flex;gap:6px;margin-top:8px}
-.tab{padding:5px 14px;font-size:13px;font-weight:600;border-radius:20px;cursor:pointer;background:transparent;border:none;color:var(--txt2)}
+.tabs-row{display:flex;align-items:center;gap:6px;margin-top:8px}
+.tabs{display:flex;gap:6px;flex:1;flex-wrap:nowrap;overflow-x:auto}
+.tab{padding:5px 14px;font-size:13px;font-weight:600;border-radius:20px;cursor:pointer;background:transparent;border:none;color:var(--txt2);white-space:nowrap}
 .tab.active{background:var(--accent);color:#fff}
+.mode-toggle{display:flex;background:var(--bg-input);border-radius:20px;padding:2px;gap:2px;flex-shrink:0}
+.mode-btn{padding:4px 10px;border-radius:18px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--txt2);white-space:nowrap}
+.mode-btn.active{background:var(--accent);color:#fff}
 .search-wrap input{width:100%;padding:8px 32px 8px 32px;border:none;border-radius:var(--rs);background:var(--bg-input);font-size:15px;color:var(--txt)}
 .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--txt3);pointer-events:none}
 
@@ -261,16 +265,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;fon
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
       </button>
     </div>
-    <div class="tabs">
-      <button class="tab active" id="tab-all" onclick="setTab('all')">すべて</button>
-      <button class="tab" id="tab-memo" onclick="setTab('memo')">メモ</button>
-      <button class="tab" id="tab-todo" onclick="setTab('todo')">ToDo</button>
-      <button class="tab" id="tab-cal" onclick="setTab('cal')">カレンダー</button>
+    <div class="tabs-row">
+      <div class="tabs">
+        <button class="tab active" id="tab-all" onclick="setTab('all')">すべて</button>
+        <button class="tab" id="tab-memo" onclick="setTab('memo')">メモ</button>
+        <button class="tab" id="tab-todo" onclick="setTab('todo')">ToDo</button>
+        <button class="tab" id="tab-cal" onclick="setTab('cal')">カレンダー</button>
+      </div>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="modeInput" onclick="setMode('input')">入力</button>
+        <button class="mode-btn" id="modeHistory" onclick="setMode('history')">履歴</button>
+      </div>
     </div>
   </div>
 
   <!-- 入力エリア（固定） -->
-  <div class="input-area">
+  <div class="input-area" id="inputArea">
     <div class="type-row">
       <button class="type-btn sel-memo" id="itype-memo" onclick="setInputType('memo')">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="1.5" width="9" height="9" rx="1.5"/><line x1="3.5" y1="4.5" x2="8.5" y2="4.5"/><line x1="3.5" y1="7" x2="6.5" y2="7"/></svg>
@@ -497,6 +507,22 @@ function exportData(){var blob=new Blob([JSON.stringify(items,null,2)],{type:'ap
 // タブ切り替え
 
 // 入力タイプ切り替え
+var currentMode='input';
+function setMode(m){
+  currentMode=m;
+  document.getElementById('modeInput').classList.toggle('active',m==='input');
+  document.getElementById('modeHistory').classList.toggle('active',m==='history');
+  var inputArea=document.getElementById('inputArea');
+  var detailArea=document.getElementById('detailArea');
+  if(m==='history'){
+    if(inputArea)inputArea.style.display='none';
+    if(detailArea)detailArea.style.display='none';
+  }else{
+    if(inputArea)inputArea.style.display='';
+    if(detailArea)detailArea.style.display='';
+  }
+  render();
+}
 function setTab(t){
   currentTab=t;
   ['all','memo','todo','cal'].forEach(function(x){
