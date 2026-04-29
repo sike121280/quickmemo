@@ -74,7 +74,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;fon
   cursor:pointer;white-space:nowrap;flex-shrink:0;
 }
 .btn-quick-save:disabled{opacity:0.5}
-.voice-hint{font-size:11px;color:var(--txt3);margin-top:6px;display:flex;align-items:center;gap:5px}
 
 /* 詳細エリア（スクロール） */
 .detail-area{
@@ -225,9 +224,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;fon
     <div class="topbar-row">
       <h1>QuickMemo</h1>
       <button class="icon-btn" onclick="openSettings()">
-        <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
-          <circle cx="8" cy="8" r="2.5"/>
-          <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M2.93 2.93l1.06 1.06M12.01 12.01l1.06 1.06M2.93 13.07l1.06-1.06M12.01 3.99l1.06-1.06"/>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
         </svg>
       </button>
     </div>
@@ -265,10 +264,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;fon
       <input type="text" id="quickTitle" placeholder="タイトルを入力">
       <button class="btn-quick-save" id="btnQuickSave" onclick="quickSave()">保存</button>
     </div>
-    <div class="voice-hint">
-      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="1" width="6" height="9" rx="3"/><path d="M2 8a6 6 0 0 0 12 0"/><line x1="8" y1="14" x2="8" y2="16"/></svg>
-      キーボード右下の🎙で音声入力できます
-    </div>
   </div>
 
   <!-- 詳細エリア（スクロール） -->
@@ -288,13 +283,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;fon
 
     <!-- カレンダー用詳細 -->
     <div class="detail-section hidden" id="detailCal">
-      <div class="field"><label>開始日時</label><input type="datetime-local" id="calStart"></div>
-      <div class="field"><label>終了日時（空欄の場合は開始日時と同じ）</label><input type="datetime-local" id="calEnd"></div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <div style="flex:1"><label style="display:block;font-size:12px;color:var(--txt2);margin-bottom:4px;font-weight:600">開始日時</label><input type="datetime-local" id="calStart" style="width:100%;padding:9px 6px;border:0.5px solid var(--border);border-radius:var(--rs);background:var(--bg-input);font-size:13px;color:var(--txt);color-scheme:light dark"></div>
+        <div style="flex:1"><label style="display:block;font-size:12px;color:var(--txt2);margin-bottom:4px;font-weight:600">終了日時</label><input type="datetime-local" id="calEnd" style="width:100%;padding:9px 6px;border:0.5px solid var(--border);border-radius:var(--rs);background:var(--bg-input);font-size:13px;color:var(--txt);color-scheme:light dark"></div>
+      </div>
       <div class="field"><label>説明</label><textarea id="calDesc" placeholder="説明を入力"></textarea></div>
     </div>
 
-    <div class="saving-text" id="savingText"></div>
-    <button class="btn-save-detail" id="btnSaveDetail" onclick="saveDetail()">保存する</button>
   </div>
 
   <!-- リスト -->
@@ -534,9 +529,6 @@ function saveDetail(){
   if(!title){document.getElementById('quickTitle').focus();return}
   if(isSaving)return;
   isSaving=true;
-  document.getElementById('btnSaveDetail').disabled=true;
-  document.getElementById('savingText').textContent='保存中...';
-
   compressImages(pendingImages,function(imgs){
     var id=Date.now().toString();
     var newItem={id:id,title:title,body:document.getElementById('bodyInput').value.trim(),type:inputType,done:false,images:imgs,createdAt:new Date().toISOString()};
@@ -560,8 +552,6 @@ function saveDetail(){
     pendingImages=[];
     document.getElementById('imgRow').innerHTML='';
     isSaving=false;
-    document.getElementById('btnSaveDetail').disabled=false;
-    document.getElementById('savingText').textContent='';
     render();
     sendToGas(newItem);
     if(inputType==='cal')sendToCalendar(newItem);
