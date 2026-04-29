@@ -1,697 +1,150 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="QuickMemo">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>QuickMemo</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html{font-size:16px}
-body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;font-size:1.15rem;background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden}
-:root{
-  --accent:#185FA5;--accent-light:#E6F1FB;
-  --danger:#C0392B;--danger-light:#FDEDEC;
-  --bg:#F2F2F7;--bg-card:#ffffff;--bg-input:#F2F2F7;
-  --txt:#1C1C1E;--txt2:#6E6E73;--txt3:#AEAEB2;
-  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.15);
-  --r:14px;--rs:10px;
-  --success-bg:#EAF3DE;--success-txt:#3B6D11;
-  --warn-bg:#FAEEDA;--warn-txt:#854F0B;
-  --shadow:0 2px 8px rgba(0,0,0,0.08);
-  --shadow-lg:0 8px 24px rgba(0,0,0,0.14);
-  --safe-bottom:env(safe-area-inset-bottom,0px);
-}
-@media(prefers-color-scheme:dark){:root{
-  --bg:#1C1C1E;--bg-card:#2C2C2E;--bg-input:#3A3A3C;
-  --txt:#F2F2F7;--txt2:#AEAEB2;--txt3:#6E6E73;
-  --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.18);
-  --shadow:0 2px 8px rgba(0,0,0,0.3);
-  --shadow-lg:0 8px 24px rgba(0,0,0,0.4);
-}}
+// ============================================================
+// QuickMemo GAS v5 - スプレッドシート連動 + Googleカレンダー連動
+// ============================================================
 
-/* トップバー */
-.topbar{
-  position:sticky;top:0;z-index:20;
-  background:var(--bg);
-  padding:0.4rem 0.75rem 0.4rem;
-  border-bottom:0.5px solid var(--border);
-}
-.topbar-row{display:flex;align-items:center;gap:0.4rem;margin-bottom:0.35rem}
-.topbar-row h1{font-size:1.4rem;font-weight:700;flex:1;color:var(--txt)}
-.icon-btn{
-  width:2rem;height:2rem;border-radius:50%;
-  border:none;background:transparent;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  color:var(--txt2);flex-shrink:0;
-}
-.icon-btn:active{background:var(--border)}
-.search-wrap{position:relative}
-.search-wrap input{
-  width:100%;padding:0.5rem 0.7rem 0.5rem 1.8rem;
-  border:none;border-radius:var(--rs);
-  background:var(--bg-input);font-size:1rem;color:var(--txt);
-}
-.search-icon{position:absolute;left:0.55rem;top:50%;transform:translateY(-50%);width:0.75rem;height:0.75rem;color:var(--txt3);pointer-events:none}
+const SHEET_NAME = 'QuickMemo';
+const NOTIFY_MINUTES_BEFORE = 15;
 
-/* タブ */
-.tabs{display:flex;padding:0.35rem 0.75rem 0;gap:0.35rem}
-.tab{
-  padding:0.35rem 0.85rem;font-size:0.9rem;font-weight:600;
-  border-radius:20px;cursor:pointer;
-  background:transparent;border:none;
-  color:var(--txt2);transition:all .15s;
-}
-.tab.active{background:var(--accent);color:#fff}
-
-/* リスト */
-.list{padding:0.55rem 0.75rem 6rem;display:flex;flex-direction:column;gap:0.4rem}
-.empty{text-align:center;color:var(--txt3);font-size:0.78rem;padding:3rem 1rem}
-
-/* カード */
-.card-wrap{position:relative;overflow:hidden;border-radius:var(--r)}
-
-.card{
-  position:relative;z-index:1;
-  background:var(--bg-card);border-radius:var(--r);
-  padding:0.65rem 0.8rem;
-  box-shadow:var(--shadow);
-  cursor:pointer;
-
-}
-.card.swiping{transition:none}
-.card:active{opacity:0.92}
-.card-header{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem}
-.check-btn{
-  width:1.3rem;height:1.3rem;border-radius:50%;
-  border:1.5px solid var(--border2);background:transparent;
-  cursor:pointer;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-  transition:all .15s;
-}
-.check-btn.checked{background:#3B6D11;border-color:#3B6D11}
-.card-title{font-size:1.05rem;font-weight:600;flex:1;line-height:1.35;color:var(--txt)}
-.card-title.done{text-decoration:line-through;color:var(--txt3)}
-.badge{font-size:0.75rem;font-weight:700;padding:0.15rem 0.55rem;border-radius:20px;white-space:nowrap;flex-shrink:0}
-.badge-todo{background:var(--accent-light);color:var(--accent)}
-.badge-memo{background:var(--bg-input);color:var(--txt2)}
-.badge-done{background:var(--success-bg);color:var(--success-txt)}
-.card-body{font-size:0.92rem;color:var(--txt2);line-height:1.5;margin-bottom:0.3rem;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.card-footer{display:flex;align-items:center;justify-content:space-between}
-.card-date{font-size:0.82rem;color:var(--txt3)}
-.card-date.overdue{color:var(--danger);font-weight:600}
-.card-img{width:2.2rem;height:2.2rem;border-radius:6px;object-fit:cover;flex-shrink:0}
-
-/* 完了済みセクション */
-.done-section-header{
-  display:flex;align-items:center;gap:0.4rem;
-  padding:0.6rem 0 0.3rem;cursor:pointer;
-}
-.done-section-header span{font-size:0.72rem;color:var(--txt3);font-weight:500}
-.done-toggle-icon{width:0.7rem;height:0.7rem;color:var(--txt3);transition:transform .2s}
-.done-toggle-icon.open{transform:rotate(90deg)}
-
-/* FABボタン */
-.fab{
-  position:fixed;
-  right:1rem;
-  bottom:1.5rem;
-  z-index:9999;
-  width:3.5rem;height:3.5rem;border-radius:50%;
-  background:var(--accent);color:#fff;
-  border:none;cursor:pointer;
-  box-shadow:var(--shadow-lg);
-  display:flex;align-items:center;justify-content:center;
-  font-size:1.6rem;font-weight:300;
-  transition:transform .1s;
-}
-.fab:active{transform:scale(0.93)}
-
-/* モーダル：2ステップ */
-.overlay{display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.45);align-items:flex-end;justify-content:center}
-.overlay.open{display:flex}
-.modal{
-  background:var(--bg-card);border-radius:1.1rem 1.1rem 0 0;
-  width:100%;padding:0.8rem 0.9rem 0;
-  max-height:94vh;overflow-y:auto;
-  padding-bottom:calc(1.5rem + var(--safe-bottom));
-}
-.modal-handle{width:2.2rem;height:0.25rem;border-radius:2px;background:var(--border2);margin:0 auto 0.8rem}
-.modal-step1{display:block}
-.modal-step2{display:none}
-
-/* ステップ1 */
-.step1-title{font-size:0.9rem;font-weight:700;color:var(--txt);margin-bottom:0.6rem}
-.type-row{display:flex;gap:0.4rem;margin-bottom:0.7rem}
-.type-btn{
-  flex:1;padding:0.5rem;border-radius:var(--rs);
-  border:1.5px solid var(--border2);background:transparent;
-  font-size:0.82rem;font-weight:600;color:var(--txt2);cursor:pointer;
-}
-.type-btn.sel{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
-.title-input-wrap{position:relative;margin-bottom:0.6rem}
-.title-input-wrap input{
-  width:100%;padding:0.65rem 0.8rem;
-  border:0.5px solid var(--border2);border-radius:var(--rs);
-  background:var(--bg-input);font-size:1rem;color:var(--txt);font-family:inherit;
-}
-.title-input-wrap input:focus{outline:none;border-color:var(--accent)}
-.step1-actions{display:flex;gap:0.45rem;margin-bottom:0.5rem}
-.btn-detail{
-  flex:1;padding:0.7rem;border-radius:var(--rs);
-  border:0.5px solid var(--border2);background:transparent;
-  font-size:1rem;color:var(--txt2);cursor:pointer;
-}
-.btn-quick-save{
-  flex:2;padding:0.7rem;
-  background:var(--accent);color:#fff;border:none;
-  border-radius:var(--rs);font-size:1rem;font-weight:700;cursor:pointer;
-}
-.btn-quick-save:disabled{opacity:0.5}
-.voice-hint{
-  display:flex;align-items:center;gap:0.4rem;
-  padding:0.4rem 0.6rem;border-radius:var(--rs);
-  background:var(--bg-input);font-size:0.7rem;color:var(--txt3);
-  margin-bottom:0.6rem;
+function doGet(e) {
+  return HtmlService.createHtmlOutputFromFile('index')
+    .setTitle('QuickMemo')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-/* ステップ2（詳細） */
-.step2-header{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.7rem}
-.btn-back{background:none;border:none;color:var(--accent);font-size:0.82rem;cursor:pointer;padding:0;display:flex;align-items:center;gap:0.2rem}
-.step2-title-label{font-size:0.9rem;font-weight:700;color:var(--txt);flex:1}
-.field{margin-bottom:0.65rem}
-.field label{display:block;font-size:0.68rem;color:var(--txt2);margin-bottom:0.28rem;font-weight:600}
-.field input,.field textarea{
-  width:100%;padding:0.65rem 0.75rem;
-  border:0.5px solid var(--border);border-radius:var(--rs);
-  background:var(--bg-input);font-size:1.1rem;color:var(--txt);font-family:inherit;
-}
-.field textarea{resize:none;height:4.5rem;line-height:1.5}
-.field input[type="datetime-local"]{color-scheme:light dark}
-.img-upload-btn{
-  display:flex;align-items:center;gap:0.45rem;
-  padding:0.5rem 0.65rem;border:0.5px solid var(--border);
-  border-radius:var(--rs);background:transparent;
-  font-size:0.78rem;color:var(--txt2);cursor:pointer;width:100%;margin-bottom:0.65rem;
-}
-.img-row{display:flex;gap:0.45rem;flex-wrap:wrap;margin-bottom:0.65rem}
-.img-thumb{position:relative;width:3.2rem;height:3.2rem}
-.img-thumb img{width:100%;height:100%;object-fit:cover;border-radius:8px}
-.img-del{position:absolute;top:-0.35rem;right:-0.35rem;width:1.1rem;height:1.1rem;border-radius:50%;background:var(--danger);color:#fff;border:none;font-size:0.75rem;line-height:1.1rem;text-align:center;cursor:pointer;padding:0}
-.modal-actions{display:flex;gap:0.45rem;margin-top:0.8rem;margin-bottom:0.4rem}
-.btn-cancel{flex:1;padding:0.75rem;border:0.5px solid var(--border);border-radius:var(--rs);background:transparent;font-size:1.05rem;color:var(--txt2);cursor:pointer}
-.btn-save{flex:2;padding:0.75rem;background:var(--accent);color:#fff;border:none;border-radius:var(--rs);font-size:1.05rem;font-weight:700;cursor:pointer}
-.btn-save:disabled{opacity:0.5}
-.saving-text{text-align:center;font-size:0.68rem;color:var(--txt3);padding:0.25rem 0}
-.delete-btn{width:100%;padding:0.65rem;border:0.5px solid rgba(192,57,43,0.35);border-radius:var(--rs);background:transparent;font-size:0.78rem;color:var(--danger);cursor:pointer;margin-bottom:0.4rem}
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
 
-/* 設定画面 */
-.settings-screen{display:none;padding:0 0.75rem 3rem}
-.settings-screen.open{display:block}
-.settings-back{display:flex;align-items:center;gap:0.35rem;padding:0.75rem 0 0.85rem;font-size:0.85rem;color:var(--accent);cursor:pointer;background:none;border:none}
-.settings-title{font-size:1.1rem;font-weight:700;margin-bottom:0.25rem;color:var(--txt)}
-.settings-desc{font-size:0.75rem;color:var(--txt2);margin-bottom:1.2rem;line-height:1.7}
-.settings-section{margin-bottom:1.2rem}
-.settings-label{font-size:0.65rem;font-weight:700;color:var(--txt2);margin-bottom:0.45rem;letter-spacing:.05em;text-transform:uppercase}
-.settings-card{background:var(--bg-card);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
-.settings-row{display:flex;align-items:center;gap:0.65rem;padding:0.7rem 0.8rem;border-bottom:0.5px solid var(--border)}
-.settings-row:last-child{border-bottom:none}
-.settings-row-icon{width:1.9rem;height:1.9rem;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.settings-row-icon.sheets{background:#E6F4EA}
-.settings-row-icon.gmail{background:#FCE8E6}
-.settings-row-body{flex:1;min-width:0}
-.settings-row-name{font-size:0.82rem;font-weight:500;color:var(--txt)}
-.settings-row-sub{font-size:0.65rem;color:var(--txt3);margin-top:0.15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.status-dot{width:0.5rem;height:0.5rem;border-radius:50%;flex-shrink:0;background:var(--border2)}
-.status-dot.on{background:#3B6D11}
-.url-input-wrap{display:none;padding:0 0.8rem 0.8rem}
-.url-input-wrap.open{display:block}
-.url-input-wrap input{width:100%;padding:0.5rem 0.6rem;border:0.5px solid var(--border);border-radius:var(--rs);background:var(--bg-input);font-size:0.68rem;color:var(--txt);font-family:monospace}
-.url-actions{display:flex;gap:0.45rem;margin-top:0.45rem}
-.url-actions button{flex:1;padding:0.55rem;border-radius:var(--rs);font-size:0.75rem;cursor:pointer;font-weight:500}
-.btn-url-clear{border:0.5px solid var(--border);background:transparent;color:var(--txt2)}
-.btn-url-connect{border:none;background:var(--accent);color:#fff}
-.notify-row{display:flex;align-items:center;gap:0.65rem;padding:0.7rem 0.8rem}
-.notify-row-body{flex:1}
-.notify-row-name{font-size:0.82rem;font-weight:500;color:var(--txt)}
-.notify-row-sub{font-size:0.65rem;color:var(--txt3);margin-top:0.15rem}
-.toggle{position:relative;width:2.5rem;height:1.5rem;flex-shrink:0}
-.toggle input{opacity:0;width:0;height:0}
-.toggle-slider{position:absolute;inset:0;border-radius:0.75rem;background:var(--border2);cursor:pointer;transition:.2s}
-.toggle input:checked+.toggle-slider{background:var(--accent)}
-.toggle-slider:before{content:'';position:absolute;width:1.15rem;height:1.15rem;border-radius:50%;background:#fff;left:0.18rem;top:0.18rem;transition:.2s}
-.toggle input:checked+.toggle-slider:before{transform:translateX(1rem)}
-.notify-minutes{display:flex;align-items:center;gap:0.45rem;padding:0 0.8rem 0.7rem}
-.notify-minutes label{font-size:0.75rem;color:var(--txt2)}
-.notify-minutes select{padding:0.3rem 0.5rem;border-radius:var(--rs);border:0.5px solid var(--border);background:var(--bg-input);font-size:0.75rem;color:var(--txt)}
-.pwa-hint{font-size:0.72rem;color:var(--txt2);background:var(--bg-card);border-radius:var(--r);padding:0.65rem 0.8rem;line-height:1.7;box-shadow:var(--shadow)}
-.pwa-hint strong{color:var(--txt)}
-.banner{display:none;margin-bottom:0.8rem;padding:0.6rem 0.75rem;border-radius:var(--rs);font-size:0.75rem;line-height:1.5}
-.banner.success{background:var(--success-bg);color:var(--success-txt);display:block}
-.banner.warn{background:var(--warn-bg);color:var(--warn-txt);display:block}
-.card-trash{
-  width:1.4rem;height:1.4rem;border-radius:6px;
-  border:none;background:transparent;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  color:var(--txt3);flex-shrink:0;padding:0;
-}
-.card-trash:active{color:var(--danger)}
-.highlight{background:#FFF3B0;border-radius:2px;color:#000}
-</style>
-</head>
-<body>
-
-<div id="mainApp">
-  <div class="topbar">
-    <div class="topbar-row">
-      <h1>QuickMemo</h1>
-      <button class="icon-btn" onclick="openSettings()">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
-          <circle cx="8" cy="8" r="2.5"/>
-          <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M2.93 2.93l1.06 1.06M12.01 12.01l1.06 1.06M2.93 13.07l1.06-1.06M12.01 3.99l1.06-1.06"/>
-        </svg>
-      </button>
-    </div>
-    <div class="search-wrap">
-      <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-        <circle cx="6.5" cy="6.5" r="4.5"/><line x1="10" y1="10" x2="14" y2="14"/>
-      </svg>
-      <input type="text" placeholder="検索" id="searchInput" oninput="render()">
-    </div>
-    <div class="tabs">
-      <button class="tab active" id="tab-all" onclick="setTab('all')">すべて</button>
-      <button class="tab" id="tab-todo" onclick="setTab('todo')">ToDo</button>
-      <button class="tab" id="tab-memo" onclick="setTab('memo')">メモ</button>
-    </div>
-  </div>
-  <div class="list" id="list"></div>
-  <button class="fab" onclick="openModal()">＋</button>
-</div>
-
-<div class="settings-screen" id="settingsScreen">
-  <button class="settings-back" onclick="closeSettings()">
-    <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9,2 4,7 9,12"/></svg>
-    もどる
-  </button>
-  <div id="banner" class="banner"></div>
-  <div class="settings-title">設定</div>
-  <div class="settings-desc">GAS URLを設定すると、データがGoogleスプレッドシートに自動保存され、期限前にGmailで通知が届きます。</div>
-  <div class="settings-section">
-    <div class="settings-label">Google連携</div>
-    <div class="settings-card">
-      <div class="settings-row" onclick="toggleUrlInput()" style="cursor:pointer">
-        <div class="settings-row-icon sheets">
-          <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
-            <rect x="2" y="1" width="14" height="16" rx="2" fill="#34A853" opacity=".15"/>
-            <rect x="2" y="1" width="14" height="16" rx="2" stroke="#34A853" stroke-width="1.2"/>
-            <line x1="5" y1="6" x2="13" y2="6" stroke="#34A853" stroke-width="1.2"/>
-            <line x1="5" y1="9" x2="13" y2="9" stroke="#34A853" stroke-width="1.2"/>
-            <line x1="5" y1="12" x2="10" y2="12" stroke="#34A853" stroke-width="1.2"/>
-          </svg>
-        </div>
-        <div class="settings-row-body">
-          <div class="settings-row-name">Googleスプレッドシート</div>
-          <div class="settings-row-sub" id="sheetsStatus">未接続 — タップしてURLを設定</div>
-        </div>
-        <div class="status-dot" id="sheetsDot"></div>
-      </div>
-      <div class="url-input-wrap" id="urlInputWrap">
-        <div style="font-size:0.65rem;color:var(--txt2);margin-bottom:0.4rem;margin-top:0.25rem">このページのURLをそのまま貼ってください</div>
-        <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/...">
-        <div class="url-actions">
-          <button class="btn-url-clear" onclick="clearGasUrl()">クリア</button>
-          <button class="btn-url-connect" onclick="saveGasUrl()">接続する</button>
-        </div>
-      </div>
-      <div class="settings-row">
-        <div class="settings-row-icon gmail">
-          <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
-            <rect x="2" y="4" width="14" height="10" rx="1.5" stroke="#EA4335" stroke-width="1.2" fill="#EA4335" opacity=".1"/>
-            <polyline points="2,4 9,10 16,4" stroke="#EA4335" stroke-width="1.2" fill="none"/>
-          </svg>
-        </div>
-        <div class="settings-row-body">
-          <div class="settings-row-name">Gmail通知</div>
-          <div class="settings-row-sub" id="gmailStatus">GAS連携後に自動で有効になります</div>
-        </div>
-        <div class="status-dot" id="gmailDot"></div>
-      </div>
-    </div>
-  </div>
-  <div class="settings-section">
-    <div class="settings-label">通知タイミング</div>
-    <div class="settings-card">
-      <div class="notify-row">
-        <div class="notify-row-body">
-          <div class="notify-row-name">ブラウザ通知</div>
-          <div class="notify-row-sub" id="notifyPermStatus">期限前にSafariから通知します</div>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="notifyToggle" onchange="toggleNotify()">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-      <div class="notify-minutes">
-        <label>期限の</label>
-        <select id="notifyMin" onchange="saveNotifyMin()">
-          <option value="5">5分前</option>
-          <option value="10">10分前</option>
-          <option value="15" selected>15分前</option>
-          <option value="30">30分前</option>
-          <option value="60">1時間前</option>
-        </select>
-        <span style="font-size:0.75rem;color:var(--txt2)">に通知</span>
-      </div>
-    </div>
-  </div>
-  <div class="settings-section">
-    <div class="settings-label">ホーム画面に追加</div>
-    <div class="pwa-hint">
-      <strong>iPhoneでアイコンを作る方法</strong><br>
-      Safariでこのページを開いた状態で、画面下の<strong>共有ボタン（□↑）</strong>をタップ→<strong>「ホーム画面に追加」</strong>を選択してください。アプリのようにアイコンから起動できます。
-    </div>
-  </div>
-  <div class="settings-section">
-    <div class="settings-label">データ</div>
-    <div class="settings-card">
-      <div class="settings-row">
-        <div class="settings-row-body">
-          <div class="settings-row-name">保存件数</div>
-          <div class="settings-row-sub" id="dataCount">0件</div>
-        </div>
-      </div>
-      <div class="settings-row" style="cursor:pointer" onclick="exportData()">
-        <div class="settings-row-body">
-          <div class="settings-row-name" style="color:var(--accent)">JSONでエクスポート</div>
-          <div class="settings-row-sub">全データをファイルに書き出す</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- 追加・編集モーダル -->
-<div class="overlay" id="overlay" onclick="overlayClick(event)">
-  <div class="modal" id="modal">
-    <div class="modal-handle"></div>
-
-    <!-- ステップ1：クイック入力 -->
-    <div class="modal-step1" id="step1">
-      <div class="step1-title">新しいアイテム</div>
-      <div class="type-row">
-        <button class="type-btn sel" id="btn-type-todo" onclick="setType('todo')">ToDo</button>
-        <button class="type-btn" id="btn-type-memo" onclick="setType('memo')">メモ</button>
-      </div>
-      <div class="voice-hint">
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="1" width="6" height="9" rx="3"/><path d="M2 8a6 6 0 0 0 12 0"/><line x1="8" y1="14" x2="8" y2="16"/></svg>
-        キーボード右下の🎙で音声入力できます
-      </div>
-      <div class="title-input-wrap">
-        <input type="text" id="titleInput" placeholder="タイトルを入力">
-      </div>
-      <div class="step1-actions">
-        <button class="btn-detail" onclick="goToStep2()">詳細を入力</button>
-        <button class="btn-quick-save" id="btnQuickSave" onclick="quickSave()">すぐ保存</button>
-      </div>
-    </div>
-
-    <!-- ステップ2：詳細入力 -->
-    <div class="modal-step2" id="step2">
-      <div class="step2-header">
-        <button class="btn-back" onclick="goToStep1()">
-          <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9,2 4,7 9,12"/></svg>
-          もどる
-        </button>
-        <div class="step2-title-label" id="step2Label">詳細</div>
-      </div>
-      <div class="field"><label>タイトル</label><input type="text" id="titleInput2" placeholder="タイトルを入力"></div>
-      <div class="field"><label>内容</label><textarea id="bodyInput" placeholder="内容を入力"></textarea></div>
-      <div class="field" id="deadlineField"><label>期限</label><input type="datetime-local" id="deadlineInput"></div>
-      <button class="img-upload-btn" onclick="document.getElementById('imgInput').click()">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-          <rect x="1" y="3" width="14" height="10" rx="2"/><circle cx="5.5" cy="7.5" r="1.5"/><polyline points="1,13 5,9 8,12 11,9 15,13"/>
-        </svg> 画像を追加
-      </button>
-      <input type="file" id="imgInput" accept="image/*" multiple onchange="addImages(event)" style="display:none">
-      <div class="img-row" id="imgRow"></div>
-      <div class="modal-actions">
-        <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
-        <button class="btn-save" id="btnSave" onclick="saveItem()">保存する</button>
-      </div>
-      <div class="saving-text" id="savingIndicator"></div>
-      <button class="delete-btn" id="deleteBtn" onclick="deleteItem()" style="display:none">削除する</button>
-    </div>
-  </div>
-</div>
-
-<script>
-var items=JSON.parse(localStorage.getItem('qm_items')||'[]');
-var cfg=JSON.parse(localStorage.getItem('qm_cfg')||'{}');
-var currentTab='all',editId=null,currentType='todo';
-var pendingImages=[],isSaving=false,doneSectionOpen=false;
-
-function saveCfg(){localStorage.setItem('qm_cfg',JSON.stringify(cfg))}
-function saveItems(){localStorage.setItem('qm_items',JSON.stringify(items))}
-
-// 設定
-function openSettings(){document.getElementById('mainApp').style.display='none';document.getElementById('settingsScreen').classList.add('open');refreshSettingsUI()}
-function closeSettings(){document.getElementById('settingsScreen').classList.remove('open');document.getElementById('mainApp').style.display='';hideBanner()}
-function refreshSettingsUI(){
-  var has=!!cfg.gasUrl;
-  document.getElementById('sheetsDot').className='status-dot '+(has?'on':'');
-  document.getElementById('sheetsStatus').textContent=has?'接続済み — '+cfg.gasUrl.slice(0,34)+'...':'未接続 — タップしてURLを設定';
-  document.getElementById('gmailDot').className='status-dot '+(has?'on':'');
-  document.getElementById('gmailStatus').textContent=has?'接続済み':'GAS連携後に自動で有効になります';
-  document.getElementById('gasUrlInput').value=cfg.gasUrl||'';
-  var notifyOn=cfg.notifyEnabled&&Notification.permission==='granted';
-  document.getElementById('notifyToggle').checked=notifyOn;
-  document.getElementById('notifyPermStatus').textContent=Notification.permission==='granted'?'許可済み':'タップして許可してください';
-  document.getElementById('notifyMin').value=cfg.notifyMin||'15';
-  document.getElementById('dataCount').textContent=items.length+'件';
-}
-function toggleUrlInput(){document.getElementById('urlInputWrap').classList.toggle('open')}
-function saveGasUrl(){
-  var v=document.getElementById('gasUrlInput').value.trim();
-  if(!v){showBanner('URLを入力してください','warn');return}
-  if(v.indexOf('script.google.com')<0){showBanner('GAS WebアプリのURLを入力してください','warn');return}
-  cfg.gasUrl=v;saveCfg();document.getElementById('urlInputWrap').classList.remove('open');refreshSettingsUI();showBanner('接続しました。','success');
-}
-function clearGasUrl(){cfg.gasUrl='';saveCfg();document.getElementById('gasUrlInput').value='';refreshSettingsUI();showBanner('接続を解除しました','warn')}
-function toggleNotify(){
-  var on=document.getElementById('notifyToggle').checked;
-  if(on&&Notification.permission!=='granted'){Notification.requestPermission().then(function(p){cfg.notifyEnabled=p==='granted';saveCfg();refreshSettingsUI();if(p!=='granted')showBanner('通知が許可されませんでした。','warn')})}
-  else{cfg.notifyEnabled=on;saveCfg();refreshSettingsUI()}
-}
-function saveNotifyMin(){cfg.notifyMin=document.getElementById('notifyMin').value;saveCfg()}
-function showBanner(msg,type){var b=document.getElementById('banner');b.textContent=msg;b.className='banner '+type;clearTimeout(b._t);b._t=setTimeout(function(){hideBanner()},4000)}
-function hideBanner(){var b=document.getElementById('banner');b.className='banner';b.textContent=''}
-function exportData(){var blob=new Blob([JSON.stringify(items,null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='quickmemo_export.json';a.click()}
-
-// タブ・レンダリング
-function setTab(t){currentTab=t;['all','todo','memo'].forEach(function(x){document.getElementById('tab-'+x).classList.toggle('active',x===t)});render()}
-
-function render(){
-  var q=document.getElementById('searchInput').value.trim().toLowerCase();
-  var all=items.filter(function(i){
-    if(currentTab==='todo'&&i.type!=='todo')return false;
-    if(currentTab==='memo'&&i.type!=='memo')return false;
-    if(q)return(i.title+' '+(i.body||'')).toLowerCase().indexOf(q)>=0;
-    return true;
-  }).sort(function(a,b){return new Date(b.createdAt)-new Date(a.createdAt)});
-
-  var active=all.filter(function(i){return !(i.type==='todo'&&i.done)});
-  var done=all.filter(function(i){return i.type==='todo'&&i.done});
-
-  var el=document.getElementById('list');
-  if(!all.length){el.innerHTML='<div class="empty">アイテムがありません</div>';return}
-
-  var html=active.map(function(item){return cardHTML(item,q)}).join('');
-
-  if(done.length){
-    html+='<div class="done-section-header" onclick="toggleDoneSection()">'
-      +'<svg class="done-toggle-icon'+(doneSectionOpen?' open':'')+'" id="doneIcon" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="2,3 5,7 8,3"/></svg>'
-      +'<span>完了済み '+done.length+'件</span>'
-      +'</div>';
-    if(doneSectionOpen){
-      html+=done.map(function(item){return cardHTML(item,q)}).join('');
+    // カレンダー登録リクエスト
+    if (data.action === 'addCalendar') {
+      addToCalendar(data);
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', action: 'calendar' }))
+        .setMimeType(ContentService.MimeType.JSON);
     }
-  }
 
-  el.innerHTML=html;
-}
+    // 通常のメモ・ToDoはスプレッドシートに保存
+    writeToSheet(data);
+    return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
+      .setMimeType(ContentService.MimeType.JSON);
 
-function cardHTML(item,q){
-  var now=new Date();
-  var isOverdue=item.type==='todo'&&item.deadline&&!item.done&&new Date(item.deadline)<now;
-  var dateLabel=item.type==='todo'&&item.deadline?fmtDate(item.deadline):fmtDate(item.createdAt);
-  var datePre=item.type==='todo'&&item.deadline?(isOverdue?'⚠ 期限: ':'期限: '):'';
-  var badge=item.type==='todo'?(item.done?'<span class="badge badge-done">完了</span>':'<span class="badge badge-todo">ToDo</span>'):'<span class="badge badge-memo">メモ</span>';
-  var chk=item.type==='todo'
-    ?'<button class="check-btn '+(item.done?'checked':'')+'" onclick="event.stopPropagation();toggleDone(\''+item.id+'\')">'
-      +(item.done?'<svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="#fff" stroke-width="1.5" fill="none"/></svg>':'')
-      +'</button>'
-    :'';
-  var img=item.images&&item.images[0]?'<img class="card-img" src="'+item.images[0]+'" alt="">':'';
-  return '<div class="card-wrap" data-id="'+item.id+'">'
-    +'<div class="card-swipe-bg"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><polyline points="1,3 13,3"/><path d="M5,3V2a1,1,0,0,1,1-1h2a1,1,0,0,1,1,1V3"/><rect x="2" y="3" width="10" height="10" rx="1"/><line x1="5" y1="6" x2="5" y2="10"/><line x1="9" y1="6" x2="9" y2="10"/></svg></div>'
-    +'<div class="card" onclick="openModal(\''+item.id+'\')">'
-    +'<div class="card-header">'+chk+'<div class="card-title'+(item.done?' done':'')+'">'+hl(item.title,q)+'</div>'+badge+'</div>'
-    +(item.body?'<div class="card-body">'+hl(item.body,q)+'</div>':'')
-    +'<div class="card-footer"><span class="card-date'+(isOverdue?' overdue':'')+'">'+datePre+dateLabel+'</span>'+img+'</div>'
-    +'</div></div>';
-}
-
-function toggleDoneSection(){
-  doneSectionOpen=!doneSectionOpen;render();
-}
-
-
-function hl(text,q){if(!text||!q)return text||'';var re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');return text.replace(re,'<mark class="highlight">$1</mark>')}
-function fmtDate(s){if(!s)return'';var d=new Date(s),now=new Date();if(d.toDateString()===now.toDateString())return'今日 '+d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});return d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'})+' '+d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}
-function toggleDone(id){var item=items.find(function(i){return i.id===id});if(item){item.done=!item.done;saveItems();render()}}
-function setType(t){currentType=t;document.getElementById('btn-type-todo').classList.toggle('sel',t==='todo');document.getElementById('btn-type-memo').classList.toggle('sel',t==='memo');document.getElementById('deadlineField').style.display=t==='todo'?'':'none'}
-
-// モーダル
-function openModal(id){
-  editId=id||null;pendingImages=[];isSaving=false;
-  document.getElementById('imgRow').innerHTML='';
-  document.getElementById('savingIndicator').textContent='';
-  document.getElementById('overlay').classList.add('open');
-
-  if(id){
-    var item=items.find(function(i){return i.id===id});
-    goToStep2();
-    document.getElementById('step2Label').textContent='編集';
-    document.getElementById('titleInput2').value=item.title;
-    document.getElementById('bodyInput').value=item.body||'';
-    document.getElementById('deadlineInput').value=item.deadline||'';
-    document.getElementById('deleteBtn').style.display='';
-    document.getElementById('btnSave').disabled=false;
-    setType(item.type);
-    if(item.images){pendingImages=item.images.slice();renderImgRow()}
-  }else{
-    goToStep1();
-    document.getElementById('titleInput').value='';
-    document.getElementById('deleteBtn').style.display='none';
-    setType(currentTab==='memo'?'memo':'todo');
-    setTimeout(function(){document.getElementById('titleInput').focus()},100);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-function goToStep1(){
-  document.getElementById('step1').style.display='block';
-  document.getElementById('step2').style.display='none';
-}
-function goToStep2(){
-  var title=document.getElementById('titleInput').value.trim();
-  document.getElementById('step1').style.display='none';
-  document.getElementById('step2').style.display='block';
-  document.getElementById('step2Label').textContent='詳細';
-  if(title)document.getElementById('titleInput2').value=title;
-  document.getElementById('deleteBtn').style.display='none';
-  document.getElementById('btnSave').disabled=false;
-  document.getElementById('deadlineField').style.display=currentType==='todo'?'':'none';
+// スプレッドシートに書き込む
+function writeToSheet(item) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAME);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAME);
+    sheet.appendRow(['ID', 'タイプ', 'タイトル', '内容', '期限/開始日', '終了日', '完了', '作成日時', '最終更新', '通知済み']);
+    sheet.getRange(1, 1, 1, 10).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const ids = data.slice(1).map(r => r[0]);
+  const rowIndex = ids.indexOf(item.id);
+
+  const typeLabel = item.type === 'todo' ? 'ToDo' : item.type === 'cal' ? 'カレンダー' : 'メモ';
+  const dateField = item.type === 'cal' ? item.calStart : item.deadline;
+  const endField = item.type === 'cal' ? item.calEnd : '';
+
+  const rowData = [
+    item.id,
+    typeLabel,
+    item.title,
+    item.type === 'cal' ? (item.calDesc || '') : (item.body || ''),
+    dateField ? new Date(dateField) : '',
+    endField ? new Date(endField) : '',
+    item.done ? '完了' : '',
+    item.createdAt ? new Date(item.createdAt) : new Date(),
+    new Date(),
+    ''
+  ];
+
+  if (rowIndex >= 0) {
+    sheet.getRange(rowIndex + 2, 1, 1, 9).setValues([rowData.slice(0, 9)]);
+  } else {
+    sheet.appendRow(rowData);
+  }
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow >= 2) {
+    sheet.getRange(2, 5, lastRow - 1, 2).setNumberFormat('yyyy/mm/dd hh:mm');
+    sheet.getRange(2, 8, lastRow - 1, 2).setNumberFormat('yyyy/mm/dd hh:mm');
+    sheet.autoResizeColumns(1, 10);
+  }
 }
 
-function quickSave(){
-  var title=document.getElementById('titleInput').value.trim();
-  if(!title){document.getElementById('titleInput').focus();return}
-  document.getElementById('btnQuickSave').disabled=true;
-  items.unshift({id:Date.now().toString(),title:title,body:'',type:currentType,deadline:null,done:false,images:[],createdAt:new Date().toISOString()});
-  saveItems();
-  document.getElementById('overlay').classList.remove('open');
-  editId=null;
-  document.getElementById('btnQuickSave').disabled=false;
-  render();
-  if(cfg.gasUrl)setTimeout(function(){fetch(cfg.gasUrl,{method:'POST',body:JSON.stringify(items[0])}).catch(function(){})},100);
+// Googleカレンダーに追加する
+function addToCalendar(item) {
+  const calendar = CalendarApp.getDefaultCalendar();
+  const title = item.title || '無題';
+  const desc = item.calDesc || '';
+
+  let startDate, endDate;
+
+  if (item.calStart) {
+    startDate = new Date(item.calStart);
+  } else {
+    startDate = new Date();
+  }
+
+  if (item.calEnd) {
+    endDate = new Date(item.calEnd);
+  } else {
+    endDate = startDate;
+  }
+
+  // 開始・終了が同じ場合は1時間後を終了に
+  if (startDate.getTime() === endDate.getTime()) {
+    endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+  }
+
+  calendar.createEvent(title, startDate, endDate, { description: desc });
 }
 
-function closeModal(){
-  if(isSaving)return;
-  document.getElementById('overlay').classList.remove('open');
-  editId=null;isSaving=false;
-}
-function overlayClick(e){if(e.target===document.getElementById('overlay'))closeModal()}
+// リマインダー（毎分実行）
+function checkDeadlines() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) return;
 
-function saveItem(){
-  if(isSaving)return;
-  var title=document.getElementById('titleInput2').value.trim();
-  if(!title){document.getElementById('titleInput2').focus();return}
-  isSaving=true;
-  document.getElementById('btnSave').disabled=true;
-  document.getElementById('savingIndicator').textContent='保存中...';
-  var body=document.getElementById('bodyInput').value.trim();
-  var deadline=currentType==='todo'?(document.getElementById('deadlineInput').value||null):null;
-  compressImages(pendingImages,function(imgs){
-    var savedId;
-    if(editId){
-      var item=items.find(function(i){return i.id===editId});
-      item.title=title;item.body=body;item.deadline=deadline;item.type=currentType;item.images=imgs;
-      savedId=editId;
-    }else{
-      savedId=Date.now().toString();
-      items.unshift({id:savedId,title:title,body:body,type:currentType,deadline:deadline,done:false,images:imgs,createdAt:new Date().toISOString()});
+  const data = sheet.getDataRange().getValues();
+  const now = new Date();
+  const notifyBefore = NOTIFY_MINUTES_BEFORE * 60 * 1000;
+  const userEmail = Session.getActiveUser().getEmail();
+
+  data.slice(1).forEach((row, i) => {
+    const type     = row[1];
+    const title    = row[2];
+    const body     = row[3];
+    const deadline = row[4];
+    const done     = row[6];
+    const notified = row[9];
+
+    if (type !== 'ToDo' || done === '完了' || !deadline || notified) return;
+
+    const diff = new Date(deadline) - now;
+    if (diff > 0 && diff <= notifyBefore) {
+      const subject = '[QuickMemo] リマインダー: ' + title;
+      const message = '期限が近づいています。\n\nタイトル: ' + title + '\n内容: ' + (body || '（なし）') + '\n期限: ' + Utilities.formatDate(new Date(deadline), 'Asia/Tokyo', 'yyyy/MM/dd HH:mm') + '\n\nこのメールはQuickMemoから自動送信されています。';
+      GmailApp.sendEmail(userEmail, subject, message);
+      sheet.getRange(i + 2, 10).setValue('通知済み');
     }
-    saveItems();
-    isSaving=false;
-    document.getElementById('btnSave').disabled=false;
-    document.getElementById('savingIndicator').textContent='';
-    document.getElementById('overlay').classList.remove('open');
-    editId=null;render();
-    if(cfg.gasUrl){
-      var d=items.find(function(i){return i.id===savedId})||items[0];
-      setTimeout(function(){fetch(cfg.gasUrl,{method:'POST',body:JSON.stringify(Object.assign({},d,{images:[]}))}).catch(function(){})},100);
-    }
   });
 }
 
-function confirmDelete(id){
-  if(!confirm('このアイテムを削除しますか？'))return;
-  items=items.filter(function(i){return i.id!==id});
-  saveItems();render();
-}
-function deleteItem(){
-  if(!editId)return;
-  if(!confirm('このアイテムを削除しますか？'))return;
-  items=items.filter(function(i){return i.id!==editId});
-  saveItems();
-  document.getElementById('overlay').classList.remove('open');
-  editId=null;render();
-}
-
-function compressImages(images,callback){
-  if(!images||images.length===0){callback([]);return}
-  var results=[],count=0;
-  images.forEach(function(src,i){
-    if(src.indexOf('data:image')<0){results[i]=src;count++;if(count===images.length)callback(results);return}
-    var img=new Image();
-    img.onload=function(){
-      var c=document.createElement('canvas'),max=400,w=img.width,h=img.height;
-      if(w>max||h>max){if(w>h){h=Math.round(h*max/w);w=max}else{w=Math.round(w*max/h);h=max}}
-      c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
-      results[i]=c.toDataURL('image/jpeg',0.8);count++;if(count===images.length)callback(results);
-    };
-    img.onerror=function(){results[i]=src;count++;if(count===images.length)callback(results)};
-    img.src=src;
-  });
-}
-function addImages(e){Array.from(e.target.files).forEach(function(f){var r=new FileReader();r.onload=function(ev){pendingImages.push(ev.target.result);renderImgRow()};r.readAsDataURL(f)});e.target.value=''}
-function renderImgRow(){document.getElementById('imgRow').innerHTML=pendingImages.map(function(src,i){return'<div class="img-thumb"><img src="'+src+'"><button class="img-del" onclick="removeImg('+i+')">x</button></div>'}).join('')}
-function removeImg(i){pendingImages.splice(i,1);renderImgRow()}
-
-setInterval(function(){
-  if(!cfg.notifyEnabled||Notification.permission!=='granted')return;
-  var mins=parseInt(cfg.notifyMin||'15'),now=new Date();
-  items.forEach(function(item){
-    if(item.type!=='todo'||item.done||!item.deadline||item._notified)return;
-    var diff=new Date(item.deadline)-now;
-    if(diff>0&&diff<=mins*60*1000){item._notified=true;new Notification('QuickMemo リマインダー',{body:item.title+'\n期限: '+fmtDate(item.deadline)})}
-  });
-},30000);
-if(Notification&&Notification.permission==='default'&&cfg.notifyEnabled)Notification.requestPermission();
-render();
-</script>
-</body>
-</html>
+// ============================================================
+// セットアップ手順（v5追加分）
+// ============================================================
+// カレンダー連携を使う場合、スクリプトにカレンダーの権限を追加する必要があります。
+// 1. GASエディタ左メニュー「サービス」の「+」
+// 2. 「Google Calendar API」を追加
+// 3. 再デプロイ（デプロイを管理→新しいバージョン）
+// 4. 承認画面でカレンダーへのアクセスを許可
+// ============================================================
