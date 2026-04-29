@@ -620,11 +620,12 @@ function render(){
   var listEl=document.getElementById('list');
   listEl.innerHTML=html||'<div class="empty">アイテムがありません</div>';
 
-  // リスト表示切替
-  var hasItems=all.length>0||done.length>0;
-  document.getElementById('listArea').classList.toggle('hidden',!hasItems&&currentTab==='all'&&!q);
-  if(hasItems||q)showList();else hideList();
-  if(all.length||done.length)showList();
+  // アイテムがあれば常にリスト表示
+  if(all.length||done.length){
+    showList();
+  }else{
+    hideList();
+  }
 }
 
 function showList(){document.getElementById('listArea').classList.remove('hidden');document.getElementById('detailArea').classList.add('hidden')}
@@ -752,7 +753,6 @@ if(Notification&&Notification.permission==='default'&&cfg.notifyEnabled)Notifica
 
 // 初期表示：アイテムがあればリスト、なければ詳細入力
 setInputType('memo');
-if(items.length>0){showList()}else{hideList()}
 render();
 </script>
 </body>
