@@ -260,11 +260,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;fon
   <!-- 入力エリア（固定） -->
   <div class="input-area">
     <div class="type-row">
-      <button class="type-btn" id="itype-memo" onclick="setInputType('memo')">
+      <button class="type-btn sel-memo" id="itype-memo" onclick="setInputType('memo')">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="1.5" width="9" height="9" rx="1.5"/><line x1="3.5" y1="4.5" x2="8.5" y2="4.5"/><line x1="3.5" y1="7" x2="6.5" y2="7"/></svg>
         メモ
       </button>
-      <button class="type-btn sel-todo" id="itype-todo" onclick="setInputType('todo')">
+      <button class="type-btn" id="itype-todo" onclick="setInputType('todo')">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="5"/><polyline points="3.5,6 5.5,8 8.5,4"/></svg>
         ToDo
       </button>
@@ -280,7 +280,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;fon
   </div>
 
   <!-- 詳細エリア（スクロール） -->
-  <div class="detail-area" id="detailArea">
+  <div class="detail-area hidden" id="detailArea">
 
     <!-- ToDo・メモ用詳細 -->
     <div class="detail-section" id="detailCommon">
@@ -306,7 +306,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;fon
   </div>
 
   <!-- リスト -->
-  <div class="list-area hidden" id="listArea">
+  <div class="list-area" id="listArea">
     <div id="list"></div>
   </div>
 </div>
